@@ -41,10 +41,12 @@ type compressionOptions struct {
 
 
 // Creates new 
-func NewCompressionOptions() (*compressionOptions) {
+func NewCompressionOptions(r *http.Request) (*compressionOptions) {
     return &compressionOptions {
         Quality:    75, // Same as JPEG default quality
         Size:       0,  // 0 = do not resize, otherwise this is the maximum dimension
+        Request:    r,
+        Context:    appengine.NewContext(r),
     }
 }
 
