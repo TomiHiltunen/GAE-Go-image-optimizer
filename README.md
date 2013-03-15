@@ -14,7 +14,7 @@ Features:
     * 0 = unlimited / no change.
     * Defaults to 0.
   * Leaves other kind of blobs untouched
-  * Returnes the same values as blobstore.ParseUploads()
+  * Returns the same values as blobstore.ParseUploads()
 
 
 Usage

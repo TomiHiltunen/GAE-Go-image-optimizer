@@ -1,3 +1,24 @@
+/***************************************************************
+*
+*   GAE Go automatic blob image optimizer
+*   
+*   Created by Tomi Hiltunen 2013.
+*   http://www.linkedin.com/in/tomihiltunen
+*
+*   https://github.com/TomiHiltunen/GAE-Go-image-optimizer
+*
+*       - Use this script however you wish.
+*       - Do not remove any copyrights/comments on any files included.
+*       - All use is on your own risk.
+*
+*   Intented use:
+*       - Drop-in replacement for GAE's blobstore.ParseUploads(...)
+*       - Automatically optimized any images uploaded
+*         to Google App Engine blobstore.
+*           - Reduces data amount in the blobstore.
+*           - Reduces download times.
+*
+***************************************************************/
 package optimg
 
 
@@ -13,6 +34,7 @@ import (
     "math"
 
     // 3rd-party
+    // By "Go Authors"
     "github.com/tomihiltunen/resize"
 
     // App Engine packages
@@ -21,6 +43,10 @@ import (
 )
 
 
+/*
+ *  Allowed mime-types.
+ *  These should be the ones supported by Go image package.
+ */
 var (
     allowedMimeTypes = map[string]bool {
         "image/jpeg": true,
@@ -31,7 +57,14 @@ var (
 )
 
 
-// The options for image optimization
+/*
+ * The options for image optimization.
+ *
+ *      Quality     The quality of the JPEG output (0-100)
+ *      Size        Maximum dimension (width/height) for the photo
+ *      Request     The pointer for the HTTP request
+ *      Context     App Engine context    
+ */
 type compressionOptions struct {
     Quality     int
     Size        int
@@ -40,7 +73,13 @@ type compressionOptions struct {
 }
 
 
-// Creates new 
+/*
+ * Create new set of options.
+ *
+ *      - Sets Quality to 75 as default. 75 is highly compressed but not visually noticable.
+ *      - Sets Size to 0 which means that no changes to images dimensions will be made.
+ *      - Creates new App Engine context.
+ */
 func NewCompressionOptions(r *http.Request) (*compressionOptions) {
     return &compressionOptions {
         Quality:    75, // Same as JPEG default quality
@@ -51,7 +90,13 @@ func NewCompressionOptions(r *http.Request) (*compressionOptions) {
 }
 
 
-// Get the blobs from ParseUpload and loop through the found names
+/*
+ * This one does the magic.
+ *
+ *      - Gets the uploaded blobs by calling blobstore.ParseUpload()
+ *      - Maintains all other values that come from blobstore.
+ *      - Hands out the results for further processing.
+ */
 func ParseBlobs(options *compressionOptions) (blobs map[string][]*blobstore.BlobInfo, other url.Values, err error) {
     blobs, other, err = blobstore.ParseUpload(options.Request)
     if err != nil {
@@ -65,7 +110,9 @@ func ParseBlobs(options *compressionOptions) (blobs map[string][]*blobstore.Blob
 }
 
 
-// Handles blob arrays and returns the replaced set of blobs
+/*
+ * Handles blob arrays and returns the replaced set of blobs.
+ */
 func handleBlobArray(options *compressionOptions, blobArrayOriginal []*blobstore.BlobInfo) (blobArray []*blobstore.BlobInfo) {
     blobArray = blobArrayOriginal
     // Loop through all the blobs in the array
@@ -76,7 +123,14 @@ func handleBlobArray(options *compressionOptions, blobArrayOriginal []*blobstore
 }
 
 
-// Handles individual blob
+/*
+ * Handles individual blobs.
+ *
+ *      - Only supported image types will be processed. Others will be returned as-is.
+ *      - Resizes the image if necessary.
+ *      - Writes the new compressed JPEG to blobstore.
+ *      - Deletes the old blob and substitutes the old BlobInfo with the new one.
+ */
 func handleBlob(options *compressionOptions, blobOriginal *blobstore.BlobInfo) (blob *blobstore.BlobInfo) {
     blob = blobOriginal
     // Check that the blob is of supported mime-type
